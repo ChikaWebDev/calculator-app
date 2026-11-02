@@ -1,0 +1,786 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiraCalc | Scientific Calculator</title>
+<style>
+:root {
+  --bg:#eef2f9;
+  --panel:#ffffff;
+  --screen:#f5f7fc;
+  --text:#182238;
+  --muted:#74819a;
+  --border:#e0e6f0;
+  --key:#f1f4fa;
+  --accent:#5268ed;
+  --accent-text:#ffffff;
+  --shadow:0 18px 55px #263b6818;
+}
+body.dark {
+  --bg:#0b1020;
+  --panel:#141c2e;
+  --screen:#0e1525;
+  --text:#f2f5ff;
+  --muted:#9ba9c3;
+  --border:#29354b;
+  --key:#202b41;
+  --accent:#7185ff;
+  --accent-text:#ffffff;
+  --shadow:0 18px 55px #00000035;
+}
+* {box-sizing:border-box;margin:0;padding:0}
+body {
+  min-height:100vh;padding:24px 14px;
+  background:var(--bg);color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+  transition:background .2s,color .2s;
+}
+button {font:inherit;cursor:pointer}
+button:focus-visible {outline:3px solid var(--accent);outline-offset:2px}
+.app {max-width:1080px;margin:auto}
+header {
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;margin-bottom:25px;
+}
+.logo {font-size:1.5rem;font-weight:800;letter-spacing:-1px}
+.logo span {color:var(--accent)}
+.tagline {color:var(--muted);font-size:.86rem;margin-top:4px}
+.header-actions {display:flex;gap:8px;flex-wrap:wrap}
+.small-btn {
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+}
+.layout {
+  display:grid;grid-template-columns:minmax(0,1fr) 280px;
+  gap:20px;align-items:start;
+}
+.calculator,.history {
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;box-shadow:var(--shadow);
+}
+.calculator {padding:20px}
+.screen {
+  background:var(--screen);border:1px solid var(--border);
+  border-radius:15px;padding:18px;margin-bottom:14px;min-height:125px;
+  overflow:hidden;
+}
+.screen-top {display:flex;justify-content:space-between;gap:10px}
+.mode-label {color:var(--accent);font-weight:bold;font-size:.78rem}
+.previous {
+  color:var(--muted);font-size:.9rem;text-align:right;
+  overflow-wrap:anywhere;min-height:22px;
+}
+.expression {
+  width:100%;border:0;outline:none;background:transparent;
+  color:var(--text);font-size:clamp(1.7rem,5vw,2.4rem);
+  text-align:right;margin-top:15px;font-weight:600;
+}
+.result {
+  color:var(--muted);font-size:1rem;text-align:right;
+  margin-top:8px;overflow-wrap:anywhere;min-height:22px;
+}
+.controls {
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;flex-wrap:wrap;margin-bottom:13px;
+}
+.toggle-group {display:flex;gap:5px;flex-wrap:wrap}
+.pill {
+  border:1px solid var(--border);background:var(--screen);
+  color:var(--muted);padding:8px 11px;border-radius:9px;font-size:.82rem;
+}
+.pill.active {background:var(--accent);color:white;border-color:var(--accent)}
+.keypad {
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;
+}
+.key {
+  min-width:0;min-height:53px;padding:8px 3px;
+  border:1px solid var(--border);border-radius:11px;
+  background:var(--key);color:var(--text);font-weight:600;
+  transition:transform .12s,filter .12s;
+}
+.key:hover {filter:brightness(.96);transform:translateY(-1px)}
+.key.function {color:var(--accent)}
+.key.operator {background:var(--screen);color:var(--accent);font-size:1.15rem}
+.key.danger {color:#e05262}
+.key.equals {background:var(--accent);color:white;border-color:var(--accent)}
+.key.zero {grid-column:span 2}
+.history {padding:20px;min-height:250px}
+.history-head {display:flex;justify-content:space-between;align-items:center;gap:8px}
+.history h2 {font-size:1.1rem}
+.clear-history {border:0;background:transparent;color:var(--accent);font-size:.85rem}
+.history-list {list-style:none;margin-top:15px}
+.history-item {padding:12px 0;border-bottom:1px solid var(--border)}
+.history-item:last-child {border-bottom:0}
+.history-expression {color:var(--muted);font-size:.84rem;overflow-wrap:anywhere}
+.history-result {font-weight:bold;margin-top:4px;overflow-wrap:anywhere}
+.reuse-result {
+  margin-top:6px;background:var(--key);border:1px solid var(--border);
+  border-radius:7px;padding:5px 8px;color:var(--accent);font-size:.8rem;
+}
+.empty-history {color:var(--muted);font-size:.9rem;margin-top:18px}
+.hint {color:var(--muted);font-size:.82rem;line-height:1.6;margin-top:17px}
+footer {text-align:center;color:var(--muted);font-size:.82rem;margin-top:25px}
+@media(max-width:800px) {
+  .layout {grid-template-columns:1fr}
+  .history {min-height:auto}
+  .history-list {max-height:250px;overflow:auto}
+}
+@media(max-width:430px) {
+  body {padding:16px 9px}
+  .calculator {padding:12px}
+  .keypad {gap:6px}
+  .key {min-height:48px;font-size:.85rem}
+  .logo {font-size:1.25rem}
+  .tagline {font-size:.78rem}
+  .small-btn {padding:8px;font-size:.82rem}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="logo">Mira<span>Calc</span></div>
+      <p class="tagline">Your everyday scientific calculator</p>
+    </div>
+    <div class="header-actions">
+      <button class="small-btn" id="themeBtn" type="button">🌙 Dark</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="calculator" aria-label="Scientific calculator">
+      <div class="screen">
+        <div class="screen-top">
+          <span class="mode-label" id="angleLabel">DEG MODE</span>
+          <span class="previous" id="previous"></span>
+        </div>
+        <input class="expression" id="expression" value="0"
+          aria-label="Calculator expression" autocomplete="off" spellcheck="false">
+        <div class="result" id="result" aria-live="polite">Ready</div>
+      </div>
+
+      <div class="controls">
+        <div class="toggle-group">
+          <button class="pill active" id="degBtn" type="button">DEG</button>
+          <button class="pill" id="radBtn" type="button">RAD</button>
+        </div>
+        <div class="toggle-group">
+          <button class="pill" id="memoryStore" type="button">MS</button>
+          <button class="pill" id="memoryRecall" type="button">MR</button>
+          <button class="pill" id="memoryAdd" type="button">M+</button>
+          <button class="pill" id="memoryClear" type="button">MC</button>
+        </div>
+      </div>
+
+      <div class="keypad" id="keypad">
+        <button class="key function" data-action="insert" data-value="sin(">sin</button>
+        <button class="key function" data-action="insert" data-value="cos(">cos</button>
+        <button class="key function" data-action="insert" data-value="tan(">tan</button>
+        <button class="key function" data-action="insert" data-value="log(">log</button>
+        <button class="key function" data-action="insert" data-value="ln(">ln</button>
+
+        <button class="key function" data-action="insert" data-value="sqrt(">√</button>
+        <button class="key function" data-action="insert" data-value="^2">x²</button>
+        <button class="key function" data-action="insert" data-value="^">xʸ</button>
+        <button class="key function" data-action="insert" data-value="(">(</button>
+        <button class="key function" data-action="insert" data-value=")">)</button>
+
+        <button class="key function" data-action="insert" data-value="pi">π</button>
+        <button class="key function" data-action="insert" data-value="e">e</button>
+        <button class="key function" data-action="insert" data-value="!">n!</button>
+        <button class="key function" data-action="insert" data-value="%">%</button>
+        <button class="key danger" data-action="clear">AC</button>
+
+        <button class="key" data-action="insert" data-value="7">7</button>
+        <button class="key" data-action="insert" data-value="8">8</button>
+        <button class="key" data-action="insert" data-value="9">9</button>
+        <button class="key operator" data-action="insert" data-value="÷">÷</button>
+        <button class="key danger" data-action="backspace">⌫</button>
+
+        <button class="key" data-action="insert" data-value="4">4</button>
+        <button class="key" data-action="insert" data-value="5">5</button>
+        <button class="key" data-action="insert" data-value="6">6</button>
+        <button class="key operator" data-action="insert" data-value="×">×</button>
+        <button class="key operator" data-action="insert" data-value="-">−</button>
+
+        <button class="key" data-action="insert" data-value="1">1</button>
+        <button class="key" data-action="insert" data-value="2">2</button>
+        <button class="key" data-action="insert" data-value="3">3</button>
+        <button class="key operator" data-action="insert" data-value="+">+</button>
+        <button class="key function" data-action="insert" data-value="ans">Ans</button>
+
+        <button class="key zero" data-action="insert" data-value="0">0</button>
+        <button class="key" data-action="insert" data-value=".">.</button>
+        <button class="key function" data-action="insert" data-value="neg">±</button>
+        <button class="key equals" data-action="equals">=</button>
+      </div>
+
+      <p class="hint">
+        Keyboard: numbers and operators, Enter to calculate, Backspace to edit,
+        Escape to clear. Use * for multiplication and / for division.
+      </p>
+    </section>
+
+    <aside class="history">
+      <div class="history-head">
+        <h2>Calculation History</h2>
+        <button class="clear-history" id="clearHistory" type="button">Clear</button>
+      </div>
+      <ul class="history-list" id="historyList"></ul>
+      <p class="empty-history" id="emptyHistory">Your calculations will appear here.</p>
+      <p class="hint">
+        Click “Use result” to bring an earlier answer back to the display.
+      </p>
+    </aside>
+  </main>
+
+  <footer>MiraCalc · Built with HTML, CSS and JavaScript</footer>
+</div>
+
+<script>
+"use strict";
+
+const expressionInput = document.getElementById("expression");
+const resultDisplay = document.getElementById("result");
+const previousDisplay = document.getElementById("previous");
+const angleLabel = document.getElementById("angleLabel");
+const historyList = document.getElementById("historyList");
+const emptyHistory = document.getElementById("emptyHistory");
+let angleMode = "DEG";
+let memory = 0;
+let lastAnswer = 0;
+let justCalculated = false;
+let history = [];
+const HISTORY_KEY = "MiraCalc-history-v1";
+const THEME_KEY = "MiraCalc-theme-v1";
+try {
+  const savedHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  if (Array.isArray(savedHistory)) {
+    history = savedHistory.filter(item =>
+      item &&
+      typeof item.expression === "string" &&
+      typeof item.result === "number" &&
+      Number.isFinite(item.result)
+    ).slice(0, 30);
+  }
+  if (localStorage.getItem(THEME_KEY) === "dark") {
+    document.body.classList.add("dark");
+  }
+} catch (error) {
+  history = [];
+}
+
+function updateThemeButton() {
+  document.getElementById("themeBtn").textContent =
+    document.body.classList.contains("dark") ? "☀️ Light" : "🌙 Dark";
+}
+
+updateThemeButton();
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  try {
+    localStorage.setItem(
+      THEME_KEY,
+      document.body.classList.contains("dark") ? "dark" : "light"
+    );
+  } catch (error) {}
+  updateThemeButton();
+});
+
+function setAngle(mode) {
+  angleMode = mode;
+  angleLabel.textContent = mode + " MODE";
+  document.getElementById("degBtn").classList.toggle("active", mode === "DEG");
+  document.getElementById("radBtn").classList.toggle("active", mode === "RAD");
+  preview();
+}
+
+document.getElementById("degBtn").addEventListener("click", () => setAngle("DEG"));
+document.getElementById("radBtn").addEventListener("click", () => setAngle("RAD"));
+
+function insertValue(value) {
+  let current = expressionInput.value;
+
+  if (current === "Error" || current === "0" || justCalculated) {
+    if (justCalculated && ["+", "-", "×", "÷", "^", "%", "!"].includes(value)) {
+      // Continue from the existing result.
+    } else if (value === ".") {
+      current = "0";
+    } else if (value === ")") {
+      return;
+    } else {
+      current = "";
+    }
+  }
+
+  justCalculated = false;
+
+  if (value === "neg") {
+    if (!current) current = "-";
+    else if (current.startsWith("-(") && current.endsWith(")")) {
+      current = current.slice(2, -1);
+    } else {
+      current = "-(" + current + ")";
+    }
+  } else if (value === "ans") {
+    current += "ans";
+  } else if (value === ".") {
+    const lastPart = current.split(/[+\-×÷*/^()%!]/).pop();
+    if (!lastPart.includes(".")) current += lastPart ? "." : "0.";
+  } else {
+    current += value;
+  }
+
+  expressionInput.value = current || "0";
+  preview();
+}
+
+function clearAll() {
+  expressionInput.value = "0";
+  resultDisplay.textContent = "Ready";
+  previousDisplay.textContent = "";
+  justCalculated = false;
+}
+
+function backspace() {
+  if (justCalculated || expressionInput.value === "Error") {
+    clearAll();
+    return;
+  }
+
+  const value = expressionInput.value;
+  const functions = ["sqrt(", "sin(", "cos(", "tan(", "log(", "ln("];
+  const matched = functions.find(fn => value.endsWith(fn));
+
+  expressionInput.value = matched
+    ? value.slice(0, -matched.length)
+    : value.slice(0, -1);
+
+  if (!expressionInput.value) expressionInput.value = "0";
+  preview();
+}
+
+document.getElementById("keypad").addEventListener("click", event => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const action = button.dataset.action;
+
+  if (action === "insert") insertValue(button.dataset.value);
+  if (action === "clear") clearAll();
+  if (action === "backspace") backspace();
+  if (action === "equals") calculate();
+});
+
+expressionInput.addEventListener("input", () => {
+  justCalculated = false;
+  preview();
+});
+
+expressionInput.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.key === "=") {
+    event.preventDefault();
+    calculate();
+  } else if (event.key === "Escape") {
+    clearAll();
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.target === expressionInput) return;
+
+  if (/^[0-9.]$/.test(event.key)) insertValue(event.key);
+  else if (["+", "-", "^", "(", ")", "%", "!"].includes(event.key)) {
+    insertValue(event.key);
+  } else if (event.key === "*") insertValue("×");
+  else if (event.key === "/") {
+    event.preventDefault();
+    insertValue("÷");
+  } else if (event.key === "Enter" || event.key === "=") {
+    event.preventDefault();
+    calculate();
+  } else if (event.key === "Backspace") {
+    backspace();
+  } else if (event.key === "Escape") {
+    clearAll();
+  }
+});
+
+function factorial(n) {
+  if (!Number.isInteger(n) || n < 0 || n > 170) {
+    throw new Error("Factorial requires a whole number from 0 to 170.");
+  }
+
+  let value = 1;
+  for (let i = 2; i <= n; i++) value *= i;
+  return value;
+}
+
+function tokenize(input) {
+  const source = input
+    .replace(/×/g, "*")
+    .replace(/÷/g, "/")
+    .replace(/−/g, "-")
+    .replace(/π/g, "pi")
+    .replace(/\s+/g, "");
+
+  const tokens = [];
+  let i = 0;
+
+  while (i < source.length) {
+    const remaining = source.slice(i);
+    const numberMatch = remaining.match(/^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/i);
+
+    if (numberMatch) {
+      tokens.push({ type: "number", value: Number(numberMatch[0]) });
+      i += numberMatch[0].length;
+      continue;
+    }
+
+    const identifierMatch = remaining.match(/^[a-zA-Z]+/);
+    if (identifierMatch) {
+      const word = identifierMatch[0].toLowerCase();
+
+      if (["sin", "cos", "tan", "asin", "acos", "atan",
+           "sqrt", "log", "ln", "abs", "pi", "e", "ans"].includes(word)) {
+        tokens.push({ type: "identifier", value: word });
+        i += identifierMatch[0].length;
+        continue;
+      }
+
+      throw new Error("Unknown function or name: " + word);
+    }
+
+    const character = source[i];
+
+    if ("+-*/^()%!".includes(character)) {
+      tokens.push({ type: "operator", value: character });
+      i++;
+      continue;
+    }
+
+    throw new Error("Invalid character: " + character);
+  }
+
+  // Insert multiplication for expressions such as 2pi, 2(3+4), and 2sin(30).
+  const expanded = [];
+
+  function endsValue(token) {
+    return token && (
+      token.type === "number" ||
+      token.value === ")" ||
+      token.value === "!" ||
+      token.value === "%" ||
+      token.value === "pi" ||
+      token.value === "e" ||
+      token.value === "ans"
+    );
+  }
+
+  function startsValue(token) {
+    return token && (
+      token.type === "number" ||
+      token.value === "(" ||
+      token.type === "identifier"
+    );
+  }
+
+  for (const token of tokens) {
+    const previous = expanded[expanded.length - 1];
+
+    if (endsValue(previous) && startsValue(token)) {
+      expanded.push({ type: "operator", value: "*" });
+    }
+
+    expanded.push(token);
+  }
+
+  return expanded;
+}
+
+function evaluateExpression(input) {
+  const tokens = tokenize(input);
+  let position = 0;
+
+  function peek(value) {
+    return tokens[position] && tokens[position].value === value;
+  }
+
+  function consume(value) {
+    if (!peek(value)) throw new Error("Expected " + value);
+    position++;
+  }
+
+  function parseExpression() {
+    let value = parseTerm();
+
+    while (peek("+") || peek("-")) {
+      const operator = tokens[position++].value;
+      const right = parseTerm();
+      value = operator === "+" ? value + right : value - right;
+    }
+
+    return value;
+  }
+
+  function parseTerm() {
+    let value = parseUnary();
+
+    while (peek("*") || peek("/")) {
+      const operator = tokens[position++].value;
+      const right = parseUnary();
+
+      if (operator === "/" && right === 0) {
+        throw new Error("Cannot divide by zero.");
+      }
+
+      value = operator === "*" ? value * right : value / right;
+    }
+
+    return value;
+  }
+
+  function parseUnary() {
+    if (peek("+")) {
+      position++;
+      return parseUnary();
+    }
+
+    if (peek("-")) {
+      position++;
+      return -parseUnary();
+    }
+
+    return parsePower();
+  }
+
+  function parsePower() {
+    let value = parsePostfix();
+
+    if (peek("^")) {
+      position++;
+      value = Math.pow(value, parseUnary());
+    }
+
+    return value;
+  }
+
+  function parsePostfix() {
+    let value = parsePrimary();
+
+    while (peek("!") || peek("%")) {
+      const operator = tokens[position++].value;
+
+      if (operator === "!") {
+        value = factorial(value);
+      } else {
+        value = value / 100;
+      }
+    }
+
+    return value;
+  }
+
+  function parsePrimary() {
+    if (peek("(")) {
+      position++;
+      const value = parseExpression();
+      consume(")");
+      return value;
+    }
+
+    const token = tokens[position++];
+
+    if (!token) throw new Error("Enter a calculation.");
+
+    if (token.type === "number") return token.value;
+
+    if (token.type === "identifier") {
+      const name = token.value;
+
+      if (name === "pi") return Math.PI;
+      if (name === "e") return Math.E;
+      if (name === "ans") return lastAnswer;
+
+      consume("(");
+      const argument = parseExpression();
+      consume(")");
+
+      const angle = angleMode === "DEG"
+        ? argument * Math.PI / 180
+        : argument;
+
+      switch (name) {
+        case "sin": return Math.sin(angle);
+        case "cos": return Math.cos(angle);
+        case "tan":
+          if (Math.abs(Math.cos(angle)) < 1e-12) {
+            throw new Error("Tangent is undefined at this angle.");
+          }
+          return Math.tan(angle);
+        case "asin":
+          return angleMode === "DEG"
+            ? Math.asin(argument) * 180 / Math.PI
+            : Math.asin(argument);
+        case "acos":
+          return angleMode === "DEG"
+            ? Math.acos(argument) * 180 / Math.PI
+            : Math.acos(argument);
+        case "atan":
+          return angleMode === "DEG"
+            ? Math.atan(argument) * 180 / Math.PI
+            : Math.atan(argument);
+        case "sqrt":
+          if (argument < 0) throw new Error("Square root needs a non-negative number.");
+          return Math.sqrt(argument);
+        case "log":
+          if (argument <= 0) throw new Error("Logarithm needs a positive number.");
+          return Math.log10(argument);
+        case "ln":
+          if (argument <= 0) throw new Error("Natural log needs a positive number.");
+          return Math.log(argument);
+        case "abs": return Math.abs(argument);
+        default: throw new Error("Unsupported function.");
+      }
+    }
+
+    throw new Error("Check your expression.");
+  }
+
+  if (tokens.length === 0) throw new Error("Enter a calculation.");
+
+  const answer = parseExpression();
+
+  if (position !== tokens.length) {
+    throw new Error("Check your brackets and operators.");
+  }
+
+  if (!Number.isFinite(answer)) {
+    throw new Error("The result is not a finite number.");
+  }
+
+  return answer;
+}
+
+function formatNumber(value) {
+  if (Object.is(value, -0)) value = 0;
+
+  if (Math.abs(value) >= 1e12 || (value !== 0 && Math.abs(value) < 1e-8)) {
+    return value.toExponential(8).replace(/\.?0+e/, "e");
+  }
+
+  return Number(value.toPrecision(12)).toString();
+}
+
+function preview() {
+  const expression = expressionInput.value.trim();
+
+  if (!expression || expression === "0") {
+    resultDisplay.textContent = "Ready";
+    return;
+  }
+
+  try {
+    const answer = evaluateExpression(expression);
+    resultDisplay.textContent = "= " + formatNumber(answer);
+  } catch (error) {
+    resultDisplay.textContent = "Enter a valid expression";
+  }
+}
+
+function calculate() {
+  const expression = expressionInput.value.trim();
+
+  try {
+    const answer = evaluateExpression(expression);
+    const roundedAnswer = Number(formatNumber(answer));
+
+    if (!Number.isFinite(roundedAnswer)) {
+      throw new Error("Result is outside the supported range.");
+    }
+    lastAnswer = roundedAnswer;
+    previousDisplay.textContent = expression + " =";
+    expressionInput.value = formatNumber(roundedAnswer);
+    resultDisplay.textContent = "= " + formatNumber(roundedAnswer);
+    justCalculated = true;
+    history.unshift({
+      expression: expression,
+      result: roundedAnswer
+    });
+    history = history.slice(0, 30);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {}
+    renderHistory();
+  } catch (error) {
+    resultDisplay.textContent = error.message || "Invalid calculation";
+    justCalculated = false;
+  }
+}
+function renderHistory() {
+  historyList.replaceChildren();
+  emptyHistory.style.display = history.length ? "none" : "block";
+  history.forEach(item => {
+    const li = document.createElement("li");
+    li.className = "history-item"
+    const expression = document.createElement("div");
+    expression.className = "history-expression";
+    expression.textContent = item.expression;
+    const answer = document.createElement("div");
+    answer.className = "history-result";
+    answer.textContent = "= " + formatNumber(item.result);
+    const useButton = document.createElement("button");
+    useButton.type = "button";
+    useButton.className = "reuse-result";
+    useButton.textContent = "Use result";
+    useButton.addEventListener("click", () => {
+      expressionInput.value = formatNumber(item.result);
+      previousDisplay.textContent = item.expression + " =";
+      resultDisplay.textContent = "Previous result loaded";
+      justCalculated = true;
+    });
+    li.append(expression, answer, useButton);
+    historyList.appendChild(li);
+  });
+}
+document.getElementById("clearHistory").addEventListener("click", () => {
+  history = [];
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch (error) {}
+  renderHistory();
+});
+function currentNumericValue() {
+  try {
+    return evaluateExpression(expressionInput.value);
+  } catch (error) {
+    return lastAnswer;
+  }
+}
+document.getElementById("memoryStore").addEventListener("click", () => {
+  memory = currentNumericValue();
+  resultDisplay.textContent = "Stored in memory: " + formatNumber(memory);
+});
+document.getElementById("memoryRecall").addEventListener("click", () => {
+  expressionInput.value = formatNumber(memory);
+  justCalculated = false;
+  preview();
+});
+document.getElementById("memoryAdd").addEventListener("click", () => {
+  memory += currentNumericValue();
+  resultDisplay.textContent = "Memory: " + formatNumber(memory);
+});
+document.getElementById("memoryClear").addEventListener("click", () => {
+  memory = 0;
+  resultDisplay.textContent = "Memory cleared";
+});
+renderHistory();
+preview();
+</script>
+</body>
+</html>
